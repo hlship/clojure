@@ -65,14 +65,10 @@ static final Symbol CASE = Symbol.intern("case*");
 //static final Symbol THISFN = Symbol.intern("thisfn");
 static final Symbol CLASS = Symbol.intern("Class");
 static final Symbol NEW = Symbol.intern("new");
-static final Symbol THIS = Symbol.intern("this");
 static final Symbol REIFY = Symbol.intern("reify*");
 //static final Symbol UNQUOTE = Symbol.intern("unquote");
 //static final Symbol UNQUOTE_SPLICING = Symbol.intern("unquote-splicing");
 //static final Symbol SYNTAX_QUOTE = Symbol.intern("clojure.core", "syntax-quote");
-static final Symbol LIST = Symbol.intern("clojure.core", "list");
-static final Symbol HASHMAP = Symbol.intern("clojure.core", "hash-map");
-static final Symbol VECTOR = Symbol.intern("clojure.core", "vector");
 static final Symbol IDENTITY = Symbol.intern("clojure.core", "identity");
 
 static final Symbol _AMP_ = Symbol.intern("&");
@@ -80,16 +76,12 @@ static final Symbol ISEQ = Symbol.intern("clojure.lang.ISeq");
 
 static final Keyword inlineKey = Keyword.intern(null, "inline");
 static final Keyword inlineAritiesKey = Keyword.intern(null, "inline-arities");
-static final Keyword staticKey = Keyword.intern(null, "static");
 static final Keyword arglistsKey = Keyword.intern(null, "arglists");
-static final Symbol INVOKE_STATIC = Symbol.intern("invokeStatic");
 
-static final Keyword volatileKey = Keyword.intern(null, "volatile");
 static final Keyword implementsKey = Keyword.intern(null, "implements");
 static final String COMPILE_STUB_PREFIX = "compile__stub";
 
 static final Keyword protocolKey = Keyword.intern(null, "protocol");
-static final Keyword onKey = Keyword.intern(null, "on");
 static Keyword dynamicKey = Keyword.intern("dynamic");
 
 static final Symbol NS = Symbol.intern("ns");
@@ -137,12 +129,9 @@ _AMP_, null
 
 private static final int MAX_POSITIONAL_ARITY = 20;
 private static final Type OBJECT_TYPE;
-private static final Type KEYWORD_TYPE = Type.getType(Keyword.class);
 private static final Type VAR_TYPE = Type.getType(Var.class);
-private static final Type SYMBOL_TYPE = Type.getType(Symbol.class);
 //private static final Type NUM_TYPE = Type.getType(Num.class);
 private static final Type IFN_TYPE = Type.getType(IFn.class);
-private static final Type AFUNCTION_TYPE = Type.getType(AFunction.class);
 private static final Type RT_TYPE = Type.getType(RT.class);
 private static final Type NUMBERS_TYPE = Type.getType(Numbers.class);
 final static Type CLASS_TYPE = Type.getType(Class.class);
@@ -241,10 +230,15 @@ static final public Var INSTANCE = Var.intern(Namespace.findOrCreate(Symbol.inte
 static final public Var ADD_ANNOTATIONS = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
                                             Symbol.intern("add-annotations"));
 
-static final public Keyword disableLocalsClearingKey = Keyword.intern("disable-locals-clearing");
+private static Var STAR_NS_STAR = Var.intern(Symbol.intern("clojure.core"),
+    Symbol.intern("*ns*")).setDynamic();
+
+    static final public Keyword disableLocalsClearingKey = Keyword.intern("disable-locals-clearing");
 static final public Keyword elideMetaKey = Keyword.intern("elide-meta");
 
 static final public Var COMPILER_OPTIONS;
+
+
 
 static public Object getCompilerOption(Keyword k){
 	return RT.get(COMPILER_OPTIONS.deref(),k);
@@ -304,9 +298,6 @@ static final public Var COLUMN_AFTER = Var.create(0).setDynamic();
 
 //Integer
 static final public Var NEXT_LOCAL_NUM = Var.create(0).setDynamic();
-
-//Integer
-static final public Var RET_LOCAL_NUM = Var.create().setDynamic();
 
 
 static final public Var COMPILE_STUB_SYM = Var.create(null).setDynamic();
@@ -396,10 +387,8 @@ static class DefExpr implements Expr{
 	public final int line;
 	public final int column;
 	final static Method bindRootMethod = Method.getMethod("void bindRoot(Object)");
-	final static Method setTagMethod = Method.getMethod("void setTag(clojure.lang.Symbol)");
 	final static Method setMetaMethod = Method.getMethod("void setMeta(clojure.lang.IPersistentMap)");
 	final static Method setDynamicMethod = Method.getMethod("clojure.lang.Var setDynamic(boolean)");
-	final static Method symintern = Method.getMethod("clojure.lang.Symbol intern(String, String)");
 
 	public DefExpr(String source, int line, int column, Var var, Expr init, Expr meta, boolean initProvided, boolean isDynamic){
 		this.source = source;
@@ -411,19 +400,6 @@ static class DefExpr implements Expr{
 		this.isDynamic = isDynamic;
 		this.initProvided = initProvided;
 	}
-
-    private boolean includesExplicitMetadata(MapExpr expr) {
-        for(int i=0; i < expr.keyvals.count(); i += 2)
-            {
-                Keyword k  = ((KeywordExpr) expr.keyvals.nth(i)).k;
-                if ((k != RT.FILE_KEY) &&
-                    (k != RT.DECLARED_KEY) &&
-                    (k != RT.LINE_KEY) &&
-                    (k != RT.COLUMN_KEY))
-                    return true;
-            }
-        return false;
-    }
 
     public Object eval() {
 		try
@@ -438,8 +414,7 @@ static class DefExpr implements Expr{
 			if(meta != null)
 				{
                 IPersistentMap metaMap = (IPersistentMap) meta.eval();
-                if (initProvided || true)//includesExplicitMetadata((MapExpr) meta))
-				    var.setMeta((IPersistentMap) meta.eval());
+				var.setMeta(metaMap);
 				}
 			return var.setDynamic(isDynamic);
 			}
@@ -456,18 +431,15 @@ static class DefExpr implements Expr{
 		objx.emitVar(gen, var);
 		if(isDynamic)
 			{
-			gen.push(isDynamic);
+			gen.push(true);
 			gen.invokeVirtual(VAR_TYPE, setDynamicMethod);
 			}
 		if(meta != null)
 			{
-            if (initProvided || true)//includesExplicitMetadata((MapExpr) meta))
-                {
                 gen.dup();
                 meta.emit(C.EXPRESSION, objx, gen);
                 gen.checkCast(IPERSISTENTMAP_TYPE);
                 gen.invokeVirtual(VAR_TYPE, setMetaMethod);
-                }
 			}
 		if(initProvided)
 			{
@@ -605,8 +577,7 @@ public static class AssignExpr implements Expr{
 public static class VarExpr implements Expr, AssignableExpr{
 	public final Var var;
 	public final Object tag;
-	final static Method getMethod = Method.getMethod("Object get()");
-	final static Method setMethod = Method.getMethod("Object set(Object)");
+    final static Method setMethod = Method.getMethod("Object set(Object)");
 
 	public VarExpr(Var var, Symbol tag){
 		this.var = var;
@@ -791,25 +762,13 @@ static public abstract class HostExpr implements Expr, MaybePrimitiveExpr{
 
 	final static Method charValueOfMethod = Method.getMethod("Character valueOf(char)");
 	final static Method intValueOfMethod = Method.getMethod("Integer valueOf(int)");
-	final static Method longValueOfMethod = Method.getMethod("Long valueOf(long)");
-	final static Method floatValueOfMethod = Method.getMethod("Float valueOf(float)");
+    final static Method floatValueOfMethod = Method.getMethod("Float valueOf(float)");
 	final static Method doubleValueOfMethod = Method.getMethod("Double valueOf(double)");
 	final static Method shortValueOfMethod = Method.getMethod("Short valueOf(short)");
 	final static Method byteValueOfMethod = Method.getMethod("Byte valueOf(byte)");
 
-	final static Method intValueMethod = Method.getMethod("int intValue()");
-	final static Method longValueMethod = Method.getMethod("long longValue()");
-	final static Method floatValueMethod = Method.getMethod("float floatValue()");
-	final static Method doubleValueMethod = Method.getMethod("double doubleValue()");
-	final static Method byteValueMethod = Method.getMethod("byte byteValue()");
-	final static Method shortValueMethod = Method.getMethod("short shortValue()");
 
-	final static Method fromIntMethod = Method.getMethod("clojure.lang.Num from(int)");
-	final static Method fromLongMethod = Method.getMethod("clojure.lang.Num from(long)");
-	final static Method fromDoubleMethod = Method.getMethod("clojure.lang.Num from(double)");
-
-
-	//*
+    //*
 	public static void emitBoxReturn(ObjExpr objx, GeneratorAdapter gen, Class returnType){
 		if(returnType.isPrimitive())
 			{
@@ -3201,7 +3160,6 @@ static class KeywordInvokeExpr implements Expr{
 	public final int column;
 	public final int siteIndex;
 	public final String source;
-	static Type ILOOKUP_TYPE = Type.getType(ILookup.class);
 
 	public KeywordInvokeExpr(String source, int line, int column, Symbol tag, KeywordExpr kw, Expr target){
 		this.source = source;
@@ -3365,157 +3323,7 @@ public static class InstanceOfExpr implements Expr, MaybePrimitiveExpr{
 
 }
 
-static class StaticInvokeExpr implements Expr, MaybePrimitiveExpr{
-	public final Type target;
-	public final Class retClass;
-	public final Class[] paramclasses;
-	public final Type[] paramtypes;
-	public final IPersistentVector args;
-	public final boolean variadic;
-	public final Symbol tag;
-
-	StaticInvokeExpr(Type target, Class retClass, Class[] paramclasses, Type[] paramtypes, boolean variadic,
-	                 IPersistentVector args,Symbol tag){
-		this.target = target;
-		this.retClass = retClass;
-		this.paramclasses = paramclasses;
-		this.paramtypes = paramtypes;
-		this.args = args;
-		this.variadic = variadic;
-		this.tag = tag;
-	}
-
-	public Object eval() {
-		throw new UnsupportedOperationException("Can't eval StaticInvokeExpr");
-	}
-
-	public void emit(C context, ObjExpr objx, GeneratorAdapter gen){
-		emitUnboxed(context, objx, gen);
-		if(context != C.STATEMENT)
-			HostExpr.emitBoxReturn(objx,gen,retClass);
-		if(context == C.STATEMENT)
-			{
-			if(retClass == long.class || retClass == double.class)
-				gen.pop2();
-			else
-				gen.pop();
-			}
-	}
-
-	public boolean hasJavaClass() {
-		return true;
-	}
-
-	public Class getJavaClass() {
-		return tag != null ? HostExpr.tagToClass(tag) : retClass;
-	}
-
-	public boolean canEmitPrimitive(){
-		return retClass.isPrimitive();
-	}
-
-	public void emitUnboxed(C context, ObjExpr objx, GeneratorAdapter gen){
-		Method ms = new Method("invokeStatic", getReturnType(), paramtypes);
-		if(variadic)
-			{
-			for(int i = 0; i < paramclasses.length - 1; i++)
-				{
-				Expr e = (Expr) args.nth(i);
-				if(maybePrimitiveType(e) == paramclasses[i])
-					{
-					((MaybePrimitiveExpr) e).emitUnboxed(C.EXPRESSION, objx, gen);
-					}
-				else
-					{
-					e.emit(C.EXPRESSION, objx, gen);
-					HostExpr.emitUnboxArg(objx, gen, paramclasses[i]);
-					}
-				}
-			IPersistentVector restArgs = RT.subvec(args,paramclasses.length - 1,args.count());
-			MethodExpr.emitArgsAsArray(restArgs,objx,gen);
-			gen.invokeStatic(Type.getType(ArraySeq.class), Method.getMethod("clojure.lang.ArraySeq create(Object[])"));
-			}
-		else
-			MethodExpr.emitTypedArgs(objx, gen, paramclasses, args);
-
-		gen.invokeStatic(target, ms);
-	}
-
-	private Type getReturnType(){
-		return Type.getType(retClass);
-	}
-
-	public static Expr parse(Var v, ISeq args, Symbol tag) {
-		IPersistentCollection paramlists = (IPersistentCollection) RT.get(v.meta(), arglistsKey);
-		if(paramlists == null)
-			throw new IllegalStateException("Can't call static fn with no arglists: " + v);
-		IPersistentVector paramlist = null;
-		int argcount = RT.count(args);
-		boolean variadic = false;
-		for(ISeq aseq = RT.seq(paramlists); aseq != null; aseq = aseq.next())
-			{
-			if(!(aseq.first() instanceof IPersistentVector))
-				throw new IllegalStateException("Expected vector arglist, had: " + aseq.first());
-			IPersistentVector alist = (IPersistentVector) aseq.first();
-			if(alist.count() > 1
-			   && alist.nth(alist.count() - 2).equals(_AMP_))
-				{
-				if(argcount >= alist.count() - 2)
-					{
-					paramlist = alist;
-					variadic = true;
-					}
-				}
-			else if(alist.count() == argcount)
-				{
-				paramlist = alist;
-				variadic = false;
-				break;
-				}
-			}
-
-		if(paramlist == null)
-			throw new IllegalArgumentException("Invalid arity - can't call: " + v + " with " + argcount + " args");
-
-		Class retClass = tagClass(tagOf(paramlist));
-
-		ArrayList<Class> paramClasses = new ArrayList();
-		ArrayList<Type> paramTypes = new ArrayList();
-
-		if(variadic)
-			{
-			for(int i = 0; i < paramlist.count()-2;i++)
-				{
-				Class pc = tagClass(tagOf(paramlist.nth(i)));
-				paramClasses.add(pc);
-				paramTypes.add(Type.getType(pc));
-				}
-			paramClasses.add(ISeq.class);
-			paramTypes.add(Type.getType(ISeq.class));
-			}
-		else
-			{
-			for(int i = 0; i < argcount;i++)
-				{
-				Class pc = tagClass(tagOf(paramlist.nth(i)));
-				paramClasses.add(pc);
-				paramTypes.add(Type.getType(pc));
-				}
-			}
-
-		String cname = v.ns.name.name.replace('.', '/').replace('-','_') + "$" + munge(v.sym.name);
-		Type target = Type.getObjectType(cname);
-
-		PersistentVector argv = PersistentVector.EMPTY;
-		for(ISeq s = RT.seq(args); s != null; s = s.next())
-			argv = argv.cons(analyze(C.EXPRESSION, s.first()));
-
-		return new StaticInvokeExpr(target,retClass,paramClasses.toArray(new Class[paramClasses.size()]),
-		                            paramTypes.toArray(new Type[paramTypes.size()]),variadic, argv, tag);
-	}
-}
-
-static class InvokeExpr implements Expr{
+    static class InvokeExpr implements Expr{
 	public final Expr fexpr;
 	public final Object tag;
 	public final IPersistentVector args;
@@ -4100,15 +3908,7 @@ static public class ObjExpr implements Expr{
 		return constantsID;
 	}
 
-	final static Method kwintern = Method.getMethod("clojure.lang.Keyword intern(String, String)");
-	final static Method symintern = Method.getMethod("clojure.lang.Symbol intern(String)");
-	final static Method varintern =
-			Method.getMethod("clojure.lang.Var intern(clojure.lang.Symbol, clojure.lang.Symbol)");
 
-	final static Type DYNAMIC_CLASSLOADER_TYPE = Type.getType(DynamicClassLoader.class);
-	final static Method getClassMethod = Method.getMethod("Class getClass()");
-	final static Method getClassLoaderMethod = Method.getMethod("ClassLoader getClassLoader()");
-	final static Method getConstantsMethod = Method.getMethod("Object[] getConstants(int)");
 	final static Method readStringMethod = Method.getMethod("Object readString(String)");
 
 	final static Type ILOOKUP_SITE_TYPE = Type.getType(ILookupSite.class);
@@ -4161,8 +3961,6 @@ static public class ObjExpr implements Expr{
 		String source = (String) SOURCE.deref();
 		int lineBefore = (Integer) LINE_BEFORE.deref();
 		int lineAfter = (Integer) LINE_AFTER.deref() + 1;
-		int columnBefore = (Integer) COLUMN_BEFORE.deref();
-		int columnAfter = (Integer) COLUMN_AFTER.deref() + 1;
 
 		if(source != null && SOURCE_PATH.deref() != null)
 			{
@@ -4783,22 +4581,8 @@ static public class ObjExpr implements Expr{
 	boolean supportsMeta(){
 		return !isDeftype();
 	}
-	void emitClearCloses(GeneratorAdapter gen){
-//		int a = 1;
-//		for(ISeq s = RT.keys(closes); s != null; s = s.next(), ++a)
-//			{
-//			LocalBinding lb = (LocalBinding) s.first();
-//			Class primc = lb.getPrimitiveType();
-//			if(primc == null)
-//				{
-//				gen.loadThis();
-//				gen.visitInsn(Opcodes.ACONST_NULL);
-//				gen.putField(objtype, lb.name, OBJECT_TYPE);
-//				}
-//			}
-	}
 
-	synchronized Class getCompiledClass(){
+    synchronized Class getCompiledClass(){
 		if(compiledClass == null)
 //			if(RT.booleanCast(COMPILE_FILES.deref()))
 //				compiledClass = RT.classForName(name);//loader.defineClass(name, bytecode);
@@ -7242,14 +7026,11 @@ static public void writeClassFile(String internalName, byte[] bytecode) throws I
 }
 
 public static void pushNS(){
-	Var.pushThreadBindings(PersistentHashMap.create(Var.intern(Symbol.intern("clojure.core"),
-	                                                           Symbol.intern("*ns*")).setDynamic(), null));
+	Var.pushThreadBindings(PersistentHashMap.create(STAR_NS_STAR, null));
 }
 
 public static void pushNSandLoader(ClassLoader loader){
-	Var.pushThreadBindings(RT.map(Var.intern(Symbol.intern("clojure.core"),
-	                                         Symbol.intern("*ns*")).setDynamic(),
-	                              null,
+	Var.pushThreadBindings(RT.map(STAR_NS_STAR, null,
 	                              RT.FN_LOADER_VAR, loader,
 	                              RT.READEVAL, RT.T
 	                              ));
@@ -8267,7 +8048,6 @@ public static class CaseExpr implements Expr, MaybePrimitiveExpr{
 	final static Method intValueMethod = Method.getMethod("int intValue()");
 
 	final static Method hashMethod = Method.getMethod("int hash(Object)");
-	final static Method hashCodeMethod = Method.getMethod("int hashCode()");
 	final static Method equivMethod = Method.getMethod("boolean equiv(Object, Object)");
     final static Keyword compactKey = Keyword.intern(null, "compact");
     final static Keyword sparseKey = Keyword.intern(null, "sparse");
