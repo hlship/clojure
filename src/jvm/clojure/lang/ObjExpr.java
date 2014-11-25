@@ -9,6 +9,8 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static clojure.asm.Opcodes.*;
+
 // Formatting is still quite funky from when this was an inner class of Compiler
 
 
@@ -16,7 +18,7 @@ import java.util.regex.Pattern;
  * An object expression, an expression that evaluates to a specific Java type, which includes
  * {@linkplain clojure.lang.Compiler.FnExpr function calls} or {@link clojure.lang.Compiler.NewInstanceExpr new instances}.
  */
-public class ObjExpr implements Expr, Opcodes {
+public class ObjExpr implements Expr {
 	static final String CONST_PREFIX = "const__";
 	String name;
 	String internalName;
