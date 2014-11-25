@@ -16,7 +16,7 @@ import static clojure.asm.Opcodes.*;
 
 /**
  * An object expression, an expression that evaluates to a specific Java type, which includes
- * {@linkplain FnExpr function calls} or {@link clojure.lang.Compiler.NewInstanceExpr new instances}.
+ * {@linkplain FnExpr function calls} or {@link NewInstanceExpr new instances}.
  */
 class ObjExpr implements Expr {
 	static final String CONST_PREFIX = "const__";
