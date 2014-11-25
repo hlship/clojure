@@ -18,7 +18,7 @@ import static clojure.asm.Opcodes.*;
  * An object expression, an expression that evaluates to a specific Java type, which includes
  * {@linkplain FnExpr function calls} or {@link clojure.lang.Compiler.NewInstanceExpr new instances}.
  */
-public class ObjExpr implements Expr {
+class ObjExpr implements Expr {
 	static final String CONST_PREFIX = "const__";
 	String name;
 	String internalName;
@@ -61,18 +61,6 @@ public class ObjExpr implements Expr {
 		return name;
 	}
 
-	public final String internalName(){
-		return internalName;
-	}
-
-	public final String thisName(){
-		return thisName;
-	}
-
-	public final Type objtype(){
-		return objtype;
-	}
-
 	public final IPersistentMap closes(){
 		return closes;
 	}
@@ -83,10 +71,6 @@ public class ObjExpr implements Expr {
 
 	public final IPersistentMap vars(){
 		return vars;
-	}
-
-	public final Class compiledClass(){
-		return compiledClass;
 	}
 
 	public final int line(){
@@ -101,11 +85,6 @@ public class ObjExpr implements Expr {
 		return constants;
 	}
 
-	public final int constantsID(){
-		return constantsID;
-	}
-
-
 	final static Method readStringMethod = Method.getMethod("Object readString(String)");
 
 	final static Type ILOOKUP_SITE_TYPE = Type.getType(ILookupSite.class);
@@ -114,7 +93,7 @@ public class ObjExpr implements Expr {
 
     private byte[] bytecode;
 
-	public ObjExpr(Object tag){
+	ObjExpr(Object tag){
 		this.tag = tag;
 	}
 
@@ -945,14 +924,6 @@ public class ObjExpr implements Expr {
 
 	String cachedClassName(int n){
 		return "__cached_class__" + n;
-	}
-
-	String cachedVarName(int n){
-		return "__cached_var__" + n;
-	}
-
-	String varCallsiteName(int n){
-		return "__var__callsite__" + n;
 	}
 
 	String thunkNameStatic(int n){

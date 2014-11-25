@@ -15,7 +15,7 @@ import java.util.IdentityHashMap;
 /**
  * A form that defines a function (possibly varadic).
  */
-public class FnExpr extends ObjExpr{
+class FnExpr extends ObjExpr{
     static final int MAX_POSITIONAL_ARITY = 20;
     //if there is a variadic overload (there can only be one) it is stored here
 	Compiler.FnMethod variadicMethod = null;
@@ -23,7 +23,7 @@ public class FnExpr extends ObjExpr{
 	private boolean hasMeta;
 	//	String superName = null;
 
-	public FnExpr(Symbol tag){
+	FnExpr(Symbol tag){
 		super(tag);
 	}
 
@@ -194,10 +194,6 @@ public class FnExpr extends ObjExpr{
 			}
 		else
 			return fn;
-	}
-
-	public final Compiler.ObjMethod variadicMethod(){
-		return variadicMethod;
 	}
 
 	boolean isVariadic(){
