@@ -2,7 +2,7 @@ package clojure.lang;
 
 import clojure.asm.commons.GeneratorAdapter;
 
-public class MethodParamExpr implements Expr, Compiler.MaybePrimitiveExpr {
+public class MethodParamExpr implements Expr, MaybePrimitiveExpr {
 	final Class c;
 
 	public MethodParamExpr(Class c){

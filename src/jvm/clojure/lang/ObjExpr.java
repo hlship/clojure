@@ -787,9 +787,9 @@ class ObjExpr implements Expr {
 		gen.loadThis();
 		if(primc != null)
 			{
-			if(!(val instanceof Compiler.MaybePrimitiveExpr && ((Compiler.MaybePrimitiveExpr) val).canEmitPrimitive()))
+			if(!(val instanceof MaybePrimitiveExpr && ((MaybePrimitiveExpr) val).canEmitPrimitive()))
 				throw new IllegalArgumentException("Must assign primitive to primitive mutable: " + lb.name);
-			Compiler.MaybePrimitiveExpr me = (Compiler.MaybePrimitiveExpr) val;
+			MaybePrimitiveExpr me = (MaybePrimitiveExpr) val;
 			me.emitUnboxed(EvaluationContext.EXPRESSION, this, gen);
 			gen.putField(objtype, lb.name, Type.getType(primc));
 			}

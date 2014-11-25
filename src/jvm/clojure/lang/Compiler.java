@@ -698,12 +698,7 @@ static interface AssignableExpr{
 	void emitAssign(EvaluationContext context, ObjExpr objx, GeneratorAdapter gen, Expr val);
 }
 
-static public interface MaybePrimitiveExpr extends Expr{
-	public boolean canEmitPrimitive();
-	public void emitUnboxed(EvaluationContext context, ObjExpr objx, GeneratorAdapter gen);
-}
-
-static public abstract class HostExpr implements Expr, MaybePrimitiveExpr{
+    static public abstract class HostExpr implements Expr, MaybePrimitiveExpr{
 	final static Type BOOLEAN_TYPE = Type.getType(Boolean.class);
 	final static Type CHAR_TYPE = Type.getType(Character.class);
 	final static Type INTEGER_TYPE = Type.getType(Integer.class);
