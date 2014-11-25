@@ -108,7 +108,6 @@ NEW, new NewExpr.Parser(),
 _AMP_, null
 );
 
-private static final int MAX_POSITIONAL_ARITY = 20;
 static final Type OBJECT_TYPE;
 static final Type VAR_TYPE = Type.getType(Var.class);
 private static final Type IFN_TYPE = Type.getType(IFn.class);
@@ -137,19 +136,19 @@ private static final Type[] EXCEPTION_TYPES = {};
 static
 	{
 	OBJECT_TYPE = Type.getType(Object.class);
-	ARG_TYPES = new Type[MAX_POSITIONAL_ARITY + 2][];
-	for(int i = 0; i <= MAX_POSITIONAL_ARITY; ++i)
+	ARG_TYPES = new Type[FnExpr.MAX_POSITIONAL_ARITY + 2][];
+	for(int i = 0; i <= FnExpr.MAX_POSITIONAL_ARITY; ++i)
 		{
 		Type[] a = new Type[i];
 		for(int j = 0; j < i; j++)
 			a[j] = OBJECT_TYPE;
 		ARG_TYPES[i] = a;
 		}
-	Type[] a = new Type[MAX_POSITIONAL_ARITY + 1];
-	for(int j = 0; j < MAX_POSITIONAL_ARITY; j++)
+	Type[] a = new Type[FnExpr.MAX_POSITIONAL_ARITY + 1];
+	for(int j = 0; j < FnExpr.MAX_POSITIONAL_ARITY; j++)
 		a[j] = OBJECT_TYPE;
-	a[MAX_POSITIONAL_ARITY] = Type.getType("[Ljava/lang/Object;");
-	ARG_TYPES[MAX_POSITIONAL_ARITY + 1] = a;
+	a[FnExpr.MAX_POSITIONAL_ARITY] = Type.getType("[Ljava/lang/Object;");
+	ARG_TYPES[FnExpr.MAX_POSITIONAL_ARITY + 1] = a;
 
 
 	}
@@ -3444,15 +3443,15 @@ public static class InstanceOfExpr implements Expr, MaybePrimitiveExpr{
 	}
 
 	void emitArgsAndCall(int firstArgToEmit, EvaluationContext context, ObjExpr objx, GeneratorAdapter gen){
-		for(int i = firstArgToEmit; i < Math.min(MAX_POSITIONAL_ARITY, args.count()); i++)
+		for(int i = firstArgToEmit; i < Math.min(FnExpr.MAX_POSITIONAL_ARITY, args.count()); i++)
 			{
 			Expr e = (Expr) args.nth(i);
 			e.emit(EvaluationContext.EXPRESSION, objx, gen);
 			}
-		if(args.count() > MAX_POSITIONAL_ARITY)
+		if(args.count() > FnExpr.MAX_POSITIONAL_ARITY)
 			{
 			PersistentVector restArgs = PersistentVector.EMPTY;
-			for(int i = MAX_POSITIONAL_ARITY; i < args.count(); i++)
+			for(int i = FnExpr.MAX_POSITIONAL_ARITY; i < args.count(); i++)
 				{
 				restArgs = restArgs.cons(args.nth(i));
 				}
@@ -3465,7 +3464,7 @@ public static class InstanceOfExpr implements Expr, MaybePrimitiveExpr{
 			method.emitClearLocals(gen);
 			}
 
-		gen.invokeInterface(IFN_TYPE, new Method("invoke", OBJECT_TYPE, ARG_TYPES[Math.min(MAX_POSITIONAL_ARITY + 1,
+		gen.invokeInterface(IFN_TYPE, new Method("invoke", OBJECT_TYPE, ARG_TYPES[Math.min(FnExpr.MAX_POSITIONAL_ARITY + 1,
 		                                                                                   args.count())]));
 	}
 
@@ -3552,228 +3551,6 @@ static class SourceDebugExtensionAttribute extends Attribute{
 	void writeSMAP(ClassWriter cw, String smap){
 		ByteVector bv = write(cw, null, -1, -1, -1);
 		bv.putUTF8(smap);
-	}
-}
-
-static public class FnExpr extends ObjExpr{
-	final static Type aFnType = Type.getType(AFunction.class);
-	final static Type restFnType = Type.getType(RestFn.class);
-	//if there is a variadic overload (there can only be one) it is stored here
-	FnMethod variadicMethod = null;
-	IPersistentCollection methods;
-	private boolean hasPrimSigs;
-	private boolean hasMeta;
-	//	String superName = null;
-
-	public FnExpr(Object tag){
-		super(tag);
-	}
-
-	public boolean hasJavaClass() {
-		return true;
-	}
-
-	boolean supportsMeta(){
-		return hasMeta;
-	}
-
-	public Class getJavaClass() {
-		return tag != null ? HostExpr.tagToClass(tag) : AFunction.class;
-	}
-
-	protected void emitMethods(ClassVisitor cv){
-		//override of invoke/doInvoke for each method
-		for(ISeq s = RT.seq(methods); s != null; s = s.next())
-			{
-			ObjMethod method = (ObjMethod) s.first();
-			method.emit(this, cv);
-			}
-
-		if(isVariadic())
-			{
-			GeneratorAdapter gen = new GeneratorAdapter(ACC_PUBLIC,
-			                                            Method.getMethod("int getRequiredArity()"),
-			                                            null,
-			                                            null,
-			                                            cv);
-			gen.visitCode();
-			gen.push(variadicMethod.reqParms.count());
-			gen.returnValue();
-			gen.endMethod();
-			}
-	}
-
-	static Expr parse(EvaluationContext context, ISeq form, String name) {
-		ISeq origForm = form;
-		FnExpr fn = new FnExpr(tagOf(form));
-		fn.src = form;
-		ObjMethod enclosingMethod = (ObjMethod) METHOD.deref();
-		if(((IMeta) form.first()).meta() != null)
-			{
-			fn.onceOnly = RT.booleanCast(RT.get(RT.meta(form.first()), Keyword.intern(null, "once")));
-//			fn.superName = (String) RT.get(RT.meta(form.first()), Keyword.intern(null, "super-name"));
-			}
-		//fn.thisName = name;
-
-		String basename = (enclosingMethod != null ?
-		                  enclosingMethod.objx.name
-		                  : (munge(currentNS().name.name))) + "$";
-
-		Symbol nm = null;
-
-		if(RT.second(form) instanceof Symbol) {
-			nm = (Symbol) RT.second(form);
-			name = nm.name + "__" + RT.nextID();
-		} else {
-			if(name == null)
-				name = "fn__" + RT.nextID();
-			else if (enclosingMethod != null)
-				name += "__" + RT.nextID();
-		}
-
-		String simpleName = munge(name).replace(".", "_DOT_");
-
-		fn.name = basename + simpleName;
-		fn.internalName = fn.name.replace('.', '/');
-		fn.objtype = Type.getObjectType(fn.internalName);
-		ArrayList<String> prims = new ArrayList();
-		try
-			{
-			Var.pushThreadBindings(
-					RT.mapUniqueKeys(CONSTANTS, PersistentVector.EMPTY,
-					       CONSTANT_IDS, new IdentityHashMap(),
-					       KEYWORDS, PersistentHashMap.EMPTY,
-					       VARS, PersistentHashMap.EMPTY,
-					       KEYWORD_CALLSITES, PersistentVector.EMPTY,
-					       PROTOCOL_CALLSITES, PersistentVector.EMPTY,
-					       VAR_CALLSITES, emptyVarCallSites(),
-                                               NO_RECUR, null
-					));
-
-			//arglist might be preceded by symbol naming this fn
-			if(nm != null)
-				{
-				fn.thisName = nm.name;
-				fn.isStatic = false; //RT.booleanCast(RT.get(nm.meta(), staticKey));
-				form = RT.cons(FN, RT.next(RT.next(form)));
-				}
-
-			//now (fn [args] body...) or (fn ([args] body...) ([args2] body2...) ...)
-			//turn former into latter
-			if(RT.second(form) instanceof IPersistentVector)
-				form = RT.list(FN, RT.next(form));
-			fn.line = lineDeref();
-			fn.column = columnDeref();
-			FnMethod[] methodArray = new FnMethod[MAX_POSITIONAL_ARITY + 1];
-			FnMethod variadicMethod = null;
-			for(ISeq s = RT.next(form); s != null; s = RT.next(s))
-				{
-				FnMethod f = FnMethod.parse(fn, (ISeq) RT.first(s), fn.isStatic);
-				if(f.isVariadic())
-					{
-					if(variadicMethod == null)
-						variadicMethod = f;
-					else
-						throw Util.runtimeException("Can't have more than 1 variadic overload");
-					}
-				else if(methodArray[f.reqParms.count()] == null)
-					methodArray[f.reqParms.count()] = f;
-				else
-					throw Util.runtimeException("Can't have 2 overloads with same arity");
-				if(f.prim != null)
-					prims.add(f.prim);
-				}
-			if(variadicMethod != null)
-				{
-				for(int i = variadicMethod.reqParms.count() + 1; i <= MAX_POSITIONAL_ARITY; i++)
-					if(methodArray[i] != null)
-						throw Util.runtimeException(
-								"Can't have fixed arity function with more params than variadic function");
-				}
-
-			if(fn.isStatic && fn.closes.count() > 0)
-				throw new IllegalArgumentException("static fns can't be closures");
-			IPersistentCollection methods = null;
-			for(int i = 0; i < methodArray.length; i++)
-				if(methodArray[i] != null)
-					methods = RT.conj(methods, methodArray[i]);
-			if(variadicMethod != null)
-				methods = RT.conj(methods, variadicMethod);
-
-			fn.methods = methods;
-			fn.variadicMethod = variadicMethod;
-			fn.keywords = (IPersistentMap) KEYWORDS.deref();
-			fn.vars = (IPersistentMap) VARS.deref();
-			fn.constants = (PersistentVector) CONSTANTS.deref();
-			fn.keywordCallsites = (IPersistentVector) KEYWORD_CALLSITES.deref();
-			fn.protocolCallsites = (IPersistentVector) PROTOCOL_CALLSITES.deref();
-			fn.varCallsites = (IPersistentSet) VAR_CALLSITES.deref();
-
-			fn.constantsID = RT.nextID();
-//			DynamicClassLoader loader = (DynamicClassLoader) LOADER.get();
-//			loader.registerConstants(fn.constantsID, fn.constants.toArray());
-			}
-		finally
-			{
-			Var.popThreadBindings();
-			}
-		fn.hasPrimSigs = prims.size() > 0;
-		IPersistentMap fmeta = RT.meta(origForm);
-		if(fmeta != null)
-			fmeta = fmeta.without(RT.LINE_KEY).without(RT.COLUMN_KEY).without(RT.FILE_KEY);
-
-		fn.hasMeta = RT.count(fmeta) > 0;
-
-		try
-			{
-			fn.compile(fn.isVariadic() ? "clojure/lang/RestFn" : "clojure/lang/AFunction",
-			           (prims.size() == 0)?
-			            null
-						:prims.toArray(new String[prims.size()])
-            );
-			}
-		catch(IOException e)
-			{
-			throw Util.sneakyThrow(e);
-			}
-		fn.getCompiledClass();
-
-		if(fn.supportsMeta())
-			{
-			//System.err.println(name + " supports meta");
-			return new MetaExpr(fn, MapExpr
-					.parse(context == EvaluationContext.EVAL ? context : EvaluationContext.EXPRESSION, fmeta));
-			}
-		else
-			return fn;
-	}
-
-	public final ObjMethod variadicMethod(){
-		return variadicMethod;
-	}
-
-	boolean isVariadic(){
-		return variadicMethod != null;
-	}
-
-	public final IPersistentCollection methods(){
-		return methods;
-	}
-
-	public void emitForDefn(ObjExpr objx, GeneratorAdapter gen){
-//		if(!hasPrimSigs && closes.count() == 0)
-//			{
-//			Type thunkType = Type.getType(FnLoaderThunk.class);
-////			presumes var on stack
-//			gen.dup();
-//			gen.newInstance(thunkType);
-//			gen.dupX1();
-//			gen.swap();
-//			gen.push(internalName.replace('/','.'));
-//			gen.invokeConstructor(thunkType,Method.getMethod("void <init>(clojure.lang.Var,String)"));
-//			}
-//		else
-			emit(EvaluationContext.EXPRESSION,objx,gen);
 	}
 }
 
@@ -3943,8 +3720,8 @@ public static class FnMethod extends ObjMethod{
 						}
 					}
 				}
-			if(method.reqParms.count() > MAX_POSITIONAL_ARITY)
-				throw Util.runtimeException("Can't specify more than " + MAX_POSITIONAL_ARITY + " params");
+			if(method.reqParms.count() > FnExpr.MAX_POSITIONAL_ARITY)
+				throw Util.runtimeException("Can't specify more than " + FnExpr.MAX_POSITIONAL_ARITY + " params");
 			LOOP_LOCALS.set(argLocals);
 			method.argLocals = argLocals;
 //			if(isStatic)
@@ -4164,10 +3941,10 @@ public static class FnMethod extends ObjMethod{
 	}
 
 	Type[] getArgTypes(){
-		if(isVariadic() && reqParms.count() == MAX_POSITIONAL_ARITY)
+		if(isVariadic() && reqParms.count() == FnExpr.MAX_POSITIONAL_ARITY)
 			{
-			Type[] ret = new Type[MAX_POSITIONAL_ARITY + 1];
-			for(int i = 0;i<MAX_POSITIONAL_ARITY + 1;i++)
+			Type[] ret = new Type[FnExpr.MAX_POSITIONAL_ARITY + 1];
+			for(int i = 0;i< FnExpr.MAX_POSITIONAL_ARITY + 1;i++)
 				ret[i] = OBJECT_TYPE;
 			return ret;
 			}
