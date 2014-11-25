@@ -305,11 +305,7 @@ static final public Class RECUR_CLASS = Recur.class;
 	}
 }
 
-interface IParser{
-	Expr parse(EvaluationContext context, Object form) ;
-}
-
-static boolean isSpecial(Object sym){
+    static boolean isSpecial(Object sym){
 	return specials.containsKey(sym);
 }
 

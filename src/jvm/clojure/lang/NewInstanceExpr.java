@@ -26,7 +26,7 @@ public class NewInstanceExpr extends ObjExpr {
 		super(tag);
 	}
 
-	static class DeftypeParser implements Compiler.IParser {
+	static class DeftypeParser implements IParser {
 		public Expr parse(EvaluationContext context, final Object frm) {
 			ISeq rform = (ISeq) frm;
 			//(deftype* tagname classname [fields] :implements [interfaces] :tag tagname methods*)
@@ -50,7 +50,7 @@ public class NewInstanceExpr extends ObjExpr {
 		}
 	}
 
-	static class ReifyParser implements Compiler.IParser {
+	static class ReifyParser implements IParser {
 	public Expr parse(EvaluationContext context, Object frm) {
 		//(reify this-name? [interfaces] (method-name [args] body)*)
 		ISeq form = (ISeq) frm;
