@@ -15,7 +15,7 @@ import static clojure.asm.Opcodes.*;
 /**
  * An expression that creates a new Java instance by invoking a constructor.
  */
-public class NewInstanceExpr extends ObjExpr {
+class NewInstanceExpr extends ObjExpr {
 	//IPersistentMap optionsMap = PersistentArrayMap.EMPTY;
 	IPersistentCollection methods;
 
@@ -100,7 +100,7 @@ public class NewInstanceExpr extends ObjExpr {
 				{
 				Symbol sym = (Symbol) fieldSyms.nth(i);
 				Compiler.LocalBinding lb = new Compiler.LocalBinding(-1, sym, null,
-				                                   new Compiler.MethodParamExpr(Compiler.tagClass(Compiler.tagOf(sym))),false,null);
+				                                   new MethodParamExpr(Compiler.tagClass(Compiler.tagOf(sym))),false,null);
 				fmap = fmap.assoc(sym, lb);
 				closesvec[i*2] = lb;
 				closesvec[i*2 + 1] = lb;
