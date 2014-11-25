@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 public class ObjExpr implements Expr, Opcodes {
 	static final String CONST_PREFIX = "const__";
 	String name;
-	//String simpleName;
 	String internalName;
 	String thisName;
 	Type objtype;
@@ -111,8 +110,7 @@ public class ObjExpr implements Expr, Opcodes {
 	final static Type ILOOKUP_THUNK_TYPE = Type.getType(ILookupThunk.class);
 	final static Type KEYWORD_LOOKUPSITE_TYPE = Type.getType(KeywordLookupSite.class);
 
-	private DynamicClassLoader loader;
-	private byte[] bytecode;
+    private byte[] bytecode;
 
 	public ObjExpr(Object tag){
 		this.tag = tag;
@@ -716,7 +714,7 @@ public class ObjExpr implements Expr, Opcodes {
     synchronized Class getCompiledClass(){
 		if(compiledClass == null)
 				{
-				loader = (DynamicClassLoader) Compiler.LOADER.deref();
+                DynamicClassLoader loader = (DynamicClassLoader) Compiler.LOADER.deref();
 				compiledClass = loader.defineClass(name, bytecode, src);
 				}
 		return compiledClass;
