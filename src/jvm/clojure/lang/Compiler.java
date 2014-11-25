@@ -4984,6 +4984,8 @@ private static Expr analyze(EvaluationContext context, Object form, String name)
 		}
 }
 
+// Needs to stay an inner class, as it is referenced from clojure.core/throw-if.
+
 static public class CompilerException extends RuntimeException{
 	final public String source;
 	
