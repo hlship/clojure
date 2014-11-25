@@ -1,4 +1,5 @@
 *.jar
+.idea
 target
 clojure.iws
 clojure.ipr
