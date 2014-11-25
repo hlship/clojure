@@ -12,23 +12,19 @@ import java.util.IdentityHashMap;
 
 // Formatting is still quite funky from when this was an inner class of Compiler
 
+/**
+ * A form that defines a function (possibly varadic).
+ */
 public class FnExpr extends ObjExpr{
-	final static Type aFnType = Type.getType(AFunction.class);
-	final static Type restFnType = Type.getType(RestFn.class);
     static final int MAX_POSITIONAL_ARITY = 20;
     //if there is a variadic overload (there can only be one) it is stored here
 	Compiler.FnMethod variadicMethod = null;
 	IPersistentCollection methods;
-	private boolean hasPrimSigs;
 	private boolean hasMeta;
 	//	String superName = null;
 
-	public FnExpr(Object tag){
+	public FnExpr(Symbol tag){
 		super(tag);
-	}
-
-	public boolean hasJavaClass() {
-		return true;
 	}
 
 	boolean supportsMeta(){
@@ -69,9 +65,7 @@ public class FnExpr extends ObjExpr{
 		if(((IMeta) form.first()).meta() != null)
 			{
 			fn.onceOnly = RT.booleanCast(RT.get(RT.meta(form.first()), Keyword.intern(null, "once")));
-//			fn.superName = (String) RT.get(RT.meta(form.first()), Keyword.intern(null, "super-name"));
 			}
-		//fn.thisName = name;
 
 		String basename = (enclosingMethod != null ?
 		                  enclosingMethod.objx.name
@@ -112,7 +106,7 @@ public class FnExpr extends ObjExpr{
 			if(nm != null)
 				{
 				fn.thisName = nm.name;
-				fn.isStatic = false; //RT.booleanCast(RT.get(nm.meta(), staticKey));
+				fn.isStatic = false;
 				form = RT.cons(Compiler.FN, RT.next(RT.next(form)));
 				}
 
@@ -168,14 +162,11 @@ public class FnExpr extends ObjExpr{
 			fn.varCallsites = (IPersistentSet) Compiler.VAR_CALLSITES.deref();
 
 			fn.constantsID = RT.nextID();
-//			DynamicClassLoader loader = (DynamicClassLoader) LOADER.get();
-//			loader.registerConstants(fn.constantsID, fn.constants.toArray());
 			}
 		finally
 			{
 			Var.popThreadBindings();
 			}
-		fn.hasPrimSigs = prims.size() > 0;
 		IPersistentMap fmeta = RT.meta(origForm);
 		if(fmeta != null)
 			fmeta = fmeta.without(RT.LINE_KEY).without(RT.COLUMN_KEY).without(RT.FILE_KEY);
@@ -198,7 +189,6 @@ public class FnExpr extends ObjExpr{
 
 		if(fn.supportsMeta())
 			{
-			//System.err.println(name + " supports meta");
 			return new Compiler.MetaExpr(fn, Compiler.MapExpr
 					.parse(context == EvaluationContext.EVAL ? context : EvaluationContext.EXPRESSION, fmeta));
 			}
@@ -219,18 +209,6 @@ public class FnExpr extends ObjExpr{
 	}
 
 	public void emitForDefn(ObjExpr objx, GeneratorAdapter gen){
-//		if(!hasPrimSigs && closes.count() == 0)
-//			{
-//			Type thunkType = Type.getType(FnLoaderThunk.class);
-////			presumes var on stack
-//			gen.dup();
-//			gen.newInstance(thunkType);
-//			gen.dupX1();
-//			gen.swap();
-//			gen.push(internalName.replace('/','.'));
-//			gen.invokeConstructor(thunkType,Method.getMethod("void <init>(clojure.lang.Var,String)"));
-//			}
-//		else
 			emit(EvaluationContext.EXPRESSION,objx,gen);
 	}
 }
