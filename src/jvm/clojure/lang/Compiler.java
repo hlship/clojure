@@ -50,7 +50,6 @@ static final Symbol QUOTE = Symbol.intern("quote");
 static final Symbol THE_VAR = Symbol.intern("var");
 static final Symbol DOT = Symbol.intern(".");
 static final Symbol ASSIGN = Symbol.intern("set!");
-//static final Symbol TRY_FINALLY = Symbol.intern("try-finally");
 static final Symbol TRY = Symbol.intern("try");
 static final Symbol CATCH = Symbol.intern("catch");
 static final Symbol FINALLY = Symbol.intern("finally");
@@ -58,17 +57,12 @@ static final Symbol THROW = Symbol.intern("throw");
 static final Symbol MONITOR_ENTER = Symbol.intern("monitor-enter");
 static final Symbol MONITOR_EXIT = Symbol.intern("monitor-exit");
 static final Symbol IMPORT = Symbol.intern("clojure.core", "import*");
-//static final Symbol INSTANCE = Symbol.intern("instance?");
 static final Symbol DEFTYPE = Symbol.intern("deftype*");
 static final Symbol CASE = Symbol.intern("case*");
 
-//static final Symbol THISFN = Symbol.intern("thisfn");
 static final Symbol CLASS = Symbol.intern("Class");
 static final Symbol NEW = Symbol.intern("new");
 static final Symbol REIFY = Symbol.intern("reify*");
-//static final Symbol UNQUOTE = Symbol.intern("unquote");
-//static final Symbol UNQUOTE_SPLICING = Symbol.intern("unquote-splicing");
-//static final Symbol SYNTAX_QUOTE = Symbol.intern("clojure.core", "syntax-quote");
 static final Symbol IDENTITY = Symbol.intern("clojure.core", "identity");
 
 static final Symbol _AMP_ = Symbol.intern("&");
@@ -87,11 +81,6 @@ static Keyword dynamicKey = Keyword.intern("dynamic");
 static final Symbol NS = Symbol.intern("ns");
 static final Symbol IN_NS = Symbol.intern("in-ns");
 
-//static final Symbol IMPORT = Symbol.intern("import");
-//static final Symbol USE = Symbol.intern("use");
-
-//static final Symbol IFN = Symbol.intern("clojure.lang", "IFn");
-
 static final public IPersistentMap specials = PersistentHashMap.create(
 		DEF, new DefExpr.Parser(),
 		LOOP, new LetExpr.Parser(),
@@ -109,28 +98,19 @@ static final public IPersistentMap specials = PersistentHashMap.create(
 		ASSIGN, new AssignExpr.Parser(),
 		DEFTYPE, new NewInstanceExpr.DeftypeParser(),
 		REIFY, new NewInstanceExpr.ReifyParser(),
-//		TRY_FINALLY, new TryFinallyExpr.Parser(),
 TRY, new TryExpr.Parser(),
 THROW, new ThrowExpr.Parser(),
 MONITOR_ENTER, new MonitorEnterExpr.Parser(),
 MONITOR_EXIT, new MonitorExitExpr.Parser(),
-//		INSTANCE, new InstanceExpr.Parser(),
-//		IDENTICAL, new IdenticalExpr.Parser(),
-//THISFN, null,
 CATCH, null,
 FINALLY, null,
-//		CLASS, new ClassExpr.Parser(),
 NEW, new NewExpr.Parser(),
-//		UNQUOTE, null,
-//		UNQUOTE_SPLICING, null,
-//		SYNTAX_QUOTE, null,
 _AMP_, null
 );
 
 private static final int MAX_POSITIONAL_ARITY = 20;
 private static final Type OBJECT_TYPE;
 private static final Type VAR_TYPE = Type.getType(Var.class);
-//private static final Type NUM_TYPE = Type.getType(Num.class);
 private static final Type IFN_TYPE = Type.getType(IFn.class);
 private static final Type RT_TYPE = Type.getType(RT.class);
 private static final Type NUMBERS_TYPE = Type.getType(Numbers.class);
@@ -144,8 +124,17 @@ final static Type IPERSISTENTMAP_TYPE = Type.getType(IPersistentMap.class);
 final static Type IOBJ_TYPE = Type.getType(IObj.class);
 
 private static final Type[][] ARG_TYPES;
-//private static final Type[] EXCEPTION_TYPES = {Type.getType(Exception.class)};
 private static final Type[] EXCEPTION_TYPES = {};
+
+    private static final Namespace CLOJURE_CORE_NS = Namespace.findOrCreate(Symbol.intern("clojure.core"));
+
+    private static Var newVar(String name) {
+        return Var.intern(CLOJURE_CORE_NS, Symbol.intern(name));
+    }
+
+    private static Var newVar(String name, Object defaultValue) {
+        return Var.intern(CLOJURE_CORE_NS, Symbol.intern(name), defaultValue);
+    }
 
 static
 	{
@@ -210,28 +199,21 @@ static final public Var NO_RECUR = Var.create(null).setDynamic();
 static final public Var LOADER = Var.create().setDynamic();
 
 //String
-static final public Var SOURCE = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                            Symbol.intern("*source-path*"), "NO_SOURCE_FILE").setDynamic();
+static final public Var SOURCE = newVar("*source-path*", "NO_SOURCE_FILE").setDynamic();
 
 //String
-static final public Var SOURCE_PATH = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                                 Symbol.intern("*file*"), "NO_SOURCE_PATH").setDynamic();
+static final public Var SOURCE_PATH = newVar("*file*", "NO_SOURCE_PATH").setDynamic();
 
 //String
-static final public Var COMPILE_PATH = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                                  Symbol.intern("*compile-path*"), null).setDynamic();
+static final public Var COMPILE_PATH = newVar("*compile-path*", null).setDynamic();
 //boolean
-static final public Var COMPILE_FILES = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                                   Symbol.intern("*compile-files*"), Boolean.FALSE).setDynamic();
+static final public Var COMPILE_FILES = newVar("*compile-files*", Boolean.FALSE).setDynamic();
 
-static final public Var INSTANCE = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                            Symbol.intern("instance?"));
+static final public Var INSTANCE = newVar("instance?");
 
-static final public Var ADD_ANNOTATIONS = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                                            Symbol.intern("add-annotations"));
+static final public Var ADD_ANNOTATIONS = newVar("add-annotations");
 
-private static Var STAR_NS_STAR = Var.intern(Symbol.intern("clojure.core"),
-    Symbol.intern("*ns*")).setDynamic();
+private static Var STAR_NS_STAR = newVar("*ns*").setDynamic();
 
     static final public Keyword disableLocalsClearingKey = Keyword.intern("disable-locals-clearing");
 static final public Keyword elideMetaKey = Keyword.intern("elide-meta");
@@ -260,8 +242,7 @@ static public Object getCompilerOption(Keyword k){
             }
         }
 
-        COMPILER_OPTIONS = Var.intern(Namespace.findOrCreate(Symbol.intern("clojure.core")),
-                Symbol.intern("*compiler-options*"), compilerOptions).setDynamic();
+        COMPILER_OPTIONS = newVar("*compiler-options*", compilerOptions).setDynamic();
     }
 
     static Object elideMeta(Object m){
