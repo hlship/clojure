@@ -684,20 +684,6 @@ public static class ImportExpr implements Expr{
 	}
 }
 
-public static abstract class LiteralExpr implements Expr{
-	abstract Object val();
-
-	public Object eval(){
-		return val();
-	}
-}
-
-static interface AssignableExpr{
-	Object evalAssign(Expr val) ;
-
-	void emitAssign(EvaluationContext context, ObjExpr objx, GeneratorAdapter gen, Expr val);
-}
-
     static public abstract class HostExpr implements Expr, MaybePrimitiveExpr{
 	final static Type BOOLEAN_TYPE = Type.getType(Boolean.class);
 	final static Type CHAR_TYPE = Type.getType(Character.class);
