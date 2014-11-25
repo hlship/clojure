@@ -126,14 +126,12 @@ final static Type IOBJ_TYPE = Type.getType(IObj.class);
 private static final Type[][] ARG_TYPES;
 private static final Type[] EXCEPTION_TYPES = {};
 
-    private static final Namespace CLOJURE_CORE_NS = Namespace.findOrCreate(Symbol.intern("clojure.core"));
-
     private static Var newVar(String name) {
-        return Var.intern(CLOJURE_CORE_NS, Symbol.intern(name));
+        return Var.intern(RT.CLOJURE_NS, Symbol.intern(name));
     }
 
     private static Var newVar(String name, Object defaultValue) {
-        return Var.intern(CLOJURE_CORE_NS, Symbol.intern(name), defaultValue);
+        return Var.intern(RT.CLOJURE_NS, Symbol.intern(name), defaultValue);
     }
 
 static
