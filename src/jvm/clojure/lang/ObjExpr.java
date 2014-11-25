@@ -28,8 +28,6 @@ public class ObjExpr implements Expr, Opcodes {
 	IPersistentMap closes = PersistentHashMap.EMPTY;
     //localbndingexprs
     IPersistentVector closesExprs = PersistentVector.EMPTY;
-	//symbols
-	IPersistentSet volatiles = PersistentHashSet.EMPTY;
 
 	//symbol->lb
 	IPersistentMap fields = null;
@@ -61,10 +59,6 @@ public class ObjExpr implements Expr, Opcodes {
 	public final String name(){
 		return name;
 	}
-
-//	public final String simpleName(){
-//		return simpleName;
-//	}
 
 	public final String internalName(){
 		return internalName;
@@ -153,13 +147,8 @@ public class ObjExpr implements Expr, Opcodes {
 		//anonymous fns get names fn__id
 		//derived from AFn/RestFn
 		ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-//		ClassWriter cw = new ClassWriter(0);
 		ClassVisitor cv = cw;
-//		ClassVisitor cv = new TraceClassVisitor(new CheckClassAdapter(cw), new PrintWriter(System.out));
-		//ClassVisitor cv = new TraceClassVisitor(cw, new PrintWriter(System.out));
 		cv.visit(V1_5, ACC_PUBLIC + ACC_SUPER + ACC_FINAL, internalName, null,superName,interfaceNames);
-//		         superName != null ? superName :
-//		         (isVariadic() ? "clojure/lang/RestFn" : "clojure/lang/AFunction"), null);
 		String source = (String) Compiler.SOURCE.deref();
 		int lineBefore = (Integer) Compiler.LINE_BEFORE.deref();
 		int lineAfter = (Integer) Compiler.LINE_AFTER.deref() + 1;
@@ -202,12 +191,6 @@ public class ObjExpr implements Expr, Opcodes {
 			              null, null);
 			}
 
-//		for(int i=0;i<varCallsites.count();i++)
-//			{
-//			cv.visitField(ACC_PRIVATE + ACC_STATIC + ACC_FINAL
-//					, varCallsiteName(i), IFN_TYPE.getDescriptor(), null, null);
-//			}
-
 		//static init for constants, keywords and vars
 		GeneratorAdapter clinitgen = new GeneratorAdapter(ACC_PUBLIC + ACC_STATIC,
 		                                                  Method.getMethod("void <clinit> ()"),
@@ -225,33 +208,6 @@ public class ObjExpr implements Expr, Opcodes {
 		if(keywordCallsites.count() > 0)
 			emitKeywordCallsites(clinitgen);
 
-		/*
-		for(int i=0;i<varCallsites.count();i++)
-			{
-			Label skipLabel = clinitgen.newLabel();
-			Label endLabel = clinitgen.newLabel();
-			Var var = (Var) varCallsites.nth(i);
-			clinitgen.push(var.ns.name.toString());
-			clinitgen.push(var.sym.toString());
-			clinitgen.invokeStatic(RT_TYPE, Method.getMethod("clojure.lang.Var var(String,String)"));
-			clinitgen.dup();
-			clinitgen.invokeVirtual(VAR_TYPE,Method.getMethod("boolean hasRoot()"));
-			clinitgen.ifZCmp(GeneratorAdapter.EQ,skipLabel);
-
-			clinitgen.invokeVirtual(VAR_TYPE,Method.getMethod("Object getRoot()"));
-            clinitgen.dup();
-            clinitgen.instanceOf(AFUNCTION_TYPE);
-            clinitgen.ifZCmp(GeneratorAdapter.EQ,skipLabel);
-			clinitgen.checkCast(IFN_TYPE);
-			clinitgen.putStatic(objtype, varCallsiteName(i), IFN_TYPE);
-			clinitgen.goTo(endLabel);
-
-			clinitgen.mark(skipLabel);
-			clinitgen.pop();
-
-			clinitgen.mark(endLabel);
-			}
-        */
 		clinitgen.returnValue();
 
 		clinitgen.endMethod();
@@ -311,24 +267,7 @@ public class ObjExpr implements Expr, Opcodes {
 		ctorgen.visitLineNumber(line, ctorgen.mark());
 		ctorgen.visitLabel(start);
 		ctorgen.loadThis();
-//		if(superName != null)
 			ctorgen.invokeConstructor(Type.getObjectType(superName), voidctor);
-//		else if(isVariadic()) //RestFn ctor takes reqArity arg
-//			{
-//			ctorgen.push(variadicMethod.reqParms.count());
-//			ctorgen.invokeConstructor(restFnType, restfnctor);
-//			}
-//		else
-//			ctorgen.invokeConstructor(aFnType, voidctor);
-
-//		if(vars.count() > 0)
-//			{
-//			ctorgen.loadThis();
-//			ctorgen.getStatic(VAR_TYPE,"rev",Type.INT_TYPE);
-//			ctorgen.push(-1);
-//			ctorgen.visitInsn(IADD);
-//			ctorgen.putField(objtype, "__varrev__", Type.INT_TYPE);
-//			}
 
 		if(supportsMeta())
 			{
@@ -486,7 +425,6 @@ public class ObjExpr implements Expr, Opcodes {
 			for(int i = 0; i < keywordCallsites.count();i++)
 				{
 				gen.mark(labels[i]);
-//				gen.loadThis();
 				gen.loadArg(1);
 				gen.putStatic(objtype, thunkNameStatic(i),ILOOKUP_THUNK_TYPE);
 				gen.goTo(endLabel);
@@ -504,8 +442,6 @@ public class ObjExpr implements Expr, Opcodes {
 		bytecode = cw.toByteArray();
 		if(RT.booleanCast(Compiler.COMPILE_FILES.deref()))
 			Compiler.writeClassFile(internalName, bytecode);
-//		else
-//			getCompiledClass();
 	}
 
 	private void emitKeywordCallsites(GeneratorAdapter clinitgen){
@@ -617,12 +553,6 @@ public class ObjExpr implements Expr, Opcodes {
 			gen.invokeStatic(Compiler.RT_TYPE,
 							 Method.getMethod("clojure.lang.Keyword keyword(String,String)"));
 			}
-//						else if(value instanceof KeywordCallSite)
-//								{
-//								emitValue(((KeywordCallSite) value).k.sym, gen);
-//								gen.invokeStatic(Type.getType(KeywordCallSite.class),
-//								                 Method.getMethod("clojure.lang.KeywordCallSite create(clojure.lang.Symbol)"));
-//								}
 		else if(value instanceof Var)
 			{
 			Var var = (Var) value;
@@ -711,7 +641,6 @@ public class ObjExpr implements Expr, Opcodes {
 			try
 				{
 				cs = RT.printString(value);
-//				System.out.println("WARNING SLOW CODE: " + Util.classOf(value) + " -> " + cs);
 				}
 			catch(Exception e)
 				{
@@ -786,9 +715,6 @@ public class ObjExpr implements Expr, Opcodes {
 
     synchronized Class getCompiledClass(){
 		if(compiledClass == null)
-//			if(RT.booleanCast(COMPILE_FILES.deref()))
-//				compiledClass = RT.classForName(name);//loader.defineClass(name, bytecode);
-//			else
 				{
 				loader = (DynamicClassLoader) Compiler.LOADER.deref();
 				compiledClass = loader.defineClass(name, bytecode, src);
@@ -920,7 +846,6 @@ public class ObjExpr implements Expr, Opcodes {
 			{
 			int argoff = isStatic?0:1;
 			Class primc = lb.getPrimitiveType();
-//            String rep = lb.sym.name + " " + lb.toString().substring(lb.toString().lastIndexOf('@'));
 			if(lb.isArg)
 				{
 				gen.loadArg(lb.idx-argoff);
@@ -930,13 +855,8 @@ public class ObjExpr implements Expr, Opcodes {
                     {
                     if(clear && lb.canBeCleared)
                         {
-//                        System.out.println("clear: " + rep);
                         gen.visitInsn(ACONST_NULL);
                         gen.storeArg(lb.idx - argoff);
-                        }
-                    else
-                        {
-//                        System.out.println("use: " + rep);
                         }
                     }
 				}
@@ -952,13 +872,8 @@ public class ObjExpr implements Expr, Opcodes {
 					gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(ILOAD), lb.idx);
                     if(clear && lb.canBeCleared)
                         {
-//                        System.out.println("clear: " + rep);
                         gen.visitInsn(ACONST_NULL);
                         gen.visitVarInsn(Compiler.OBJECT_TYPE.getOpcode(ISTORE), lb.idx);
-                        }
-                    else
-                        {
-//                        System.out.println("use: " + rep);
                         }
                     }
 				}
@@ -1005,7 +920,6 @@ public class ObjExpr implements Expr, Opcodes {
 	public void emitKeyword(GeneratorAdapter gen, Keyword k){
 		Integer i = (Integer) keywords.valAt(k);
 		emitConstant(gen, i);
-//		gen.getStatic(fntype, munge(k.sym.toString()), KEYWORD_TYPE);
 	}
 
 	public void emitConstant(GeneratorAdapter gen, int id){
@@ -1055,8 +969,6 @@ public class ObjExpr implements Expr, Opcodes {
 				return Type.getType(ISeq.class);
 			else if(c == Keyword.class)
 				return Type.getType(Keyword.class);
-//			else if(c == KeywordCallSite.class)
-//				return Type.getType(KeywordCallSite.class);
 			else if(RestFn.class.isAssignableFrom(c))
 				return Type.getType(RestFn.class);
 			else if(AFn.class.isAssignableFrom(c))
@@ -1066,7 +978,6 @@ public class ObjExpr implements Expr, Opcodes {
 					else if(c == String.class)
 							return Type.getType(String.class);
 
-//			return Type.getType(c);
 			}
 		return Compiler.OBJECT_TYPE;
 	}
