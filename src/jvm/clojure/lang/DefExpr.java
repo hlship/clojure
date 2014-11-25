@@ -32,9 +32,6 @@ class DefExpr implements Expr {
 			{
 			if(initProvided)
 				{
-//			if(init instanceof FnExpr && ((FnExpr) init).closes.count()==0)
-//				var.bindRoot(new FnLoaderThunk((FnExpr) init,var));
-//			else
 				var.bindRoot(init.eval());
 				}
 			if(meta != null)
@@ -116,8 +113,6 @@ class DefExpr implements Expr {
 					v = Compiler.currentNS().intern(sym);
 					Compiler.registerVar(v);
 					}
-//					throw Util.runtimeException("Name conflict, can't def " + sym + " because namespace: " + currentNS().name +
-//					                    " refers to:" + v);
 				else
 					throw Util.runtimeException("Can't create defs outside of current ns");
 				}
@@ -144,15 +139,6 @@ class DefExpr implements Expr {
             mm = (IPersistentMap) RT.assoc(mm, RT.LINE_KEY, Compiler.LINE.get()).assoc(RT.COLUMN_KEY, Compiler.COLUMN.get()).assoc(RT.FILE_KEY, source_path);
 			if (docstring != null)
 			  mm = (IPersistentMap) RT.assoc(mm, RT.DOC_KEY, docstring);
-//			mm = mm.without(RT.DOC_KEY)
-//					.without(Keyword.intern(null, "arglists"))
-//					.without(RT.FILE_KEY)
-//					.without(RT.LINE_KEY)
-//					.without(RT.COLUMN_KEY)
-//					.without(Keyword.intern(null, "ns"))
-//					.without(Keyword.intern(null, "name"))
-//					.without(Keyword.intern(null, "added"))
-//					.without(Keyword.intern(null, "static"));
             mm = (IPersistentMap) Compiler.elideMeta(mm);
 			Expr meta = mm.count()==0 ? null: Compiler.analyze(context == EvaluationContext.EVAL ? context : EvaluationContext.EXPRESSION, mm);
 			return new DefExpr((String) Compiler.SOURCE.deref(), Compiler.lineDeref(), Compiler.columnDeref(),
