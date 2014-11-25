@@ -12,8 +12,6 @@
 
 package clojure.lang;
 
-//*
-
 import clojure.asm.*;
 import clojure.asm.commons.GeneratorAdapter;
 import clojure.asm.commons.Method;
@@ -24,16 +22,6 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-
-//*/
-/*
-
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.Method;
-import org.objectweb.asm.commons.GeneratorAdapter;
-import org.objectweb.asm.util.TraceClassVisitor;
-import org.objectweb.asm.util.CheckClassAdapter;
-//*/
 
 public class Compiler implements Opcodes{
 
@@ -293,17 +281,6 @@ static final public Var CLEAR_SITES = Var.create(null).setDynamic();
 
     private class Recur {};
 static final public Class RECUR_CLASS = Recur.class;
-
-    public static abstract class UntypedExpr implements Expr{
-
-	public Class getJavaClass(){
-		throw new IllegalArgumentException("Has no Java class");
-	}
-
-	public boolean hasJavaClass(){
-		return false;
-	}
-}
 
     static boolean isSpecial(Object sym){
 	return specials.containsKey(sym);
