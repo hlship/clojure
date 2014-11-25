@@ -3731,8 +3731,8 @@ static public class FnExpr extends ObjExpr{
 			fn.compile(fn.isVariadic() ? "clojure/lang/RestFn" : "clojure/lang/AFunction",
 			           (prims.size() == 0)?
 			            null
-						:prims.toArray(new String[prims.size()]),
-			            fn.onceOnly);
+						:prims.toArray(new String[prims.size()])
+            );
 			}
 		catch(IOException e)
 			{
@@ -6317,7 +6317,7 @@ static public class NewInstanceExpr extends ObjExpr{
 
 		try
 			{
-			ret.compile(slashname(superClass),inames,false);
+			ret.compile(slashname(superClass),inames);
 			}
 		catch(IOException e)
 			{

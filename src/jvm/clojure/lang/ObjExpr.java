@@ -139,7 +139,7 @@ public class ObjExpr implements Expr, Opcodes {
 		return ret;
 	}
 
-	void compile(String superName, String[] interfaceNames, boolean oneTimeUse) throws IOException {
+	void compile(String superName, String[] interfaceNames) throws IOException {
 		//create bytecode for a class
 		//with name current_ns.defname[$letname]+
 		//anonymous fns get names fn__id
